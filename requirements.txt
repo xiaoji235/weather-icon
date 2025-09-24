@@ -1,2 +1,5 @@
-flask>=2.0.0
-requests>=2.26.0
+# requirements.txt
+fastapi==0.110.0          # FastAPI 核心库（版本可自选，建议用稳定版）
+uvicorn==0.29.0           # FastAPI 运行服务器（Vercel 需用它启动服务）
+requests==2.31.0          # 用于请求天气 API
+python-multipart==0.0.9   # 可选，FastAPI 处理文件时用，此处可加可不加
