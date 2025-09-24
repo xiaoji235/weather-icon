@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Response, Request
+from fastapi import FastAPI, HTTPException, Response
 import requests
 import os
 from pathlib import Path
@@ -12,34 +12,24 @@ app = FastAPI(
 # 配置参数
 WEATHER_API_URL = "https://cloud-rest.lenovomm.com/cloud-weather/weather/localWeather"
 SVG_STORAGE_DIR = "./weather"
+FIXED_IP = "27.213.62.20"  # 固定传递的IP地址
 
 # 确保SVG目录存在
 Path(SVG_STORAGE_DIR).mkdir(parents=True, exist_ok=True)
 
 @app.get("/", response_class=Response)
-async def get_weather_svg(request: Request):
+async def get_weather_svg():
     try:
-        # 1. 获取用户真实IP（关键修复）
-        # 优先从X-Forwarded-For获取（Vercel等代理环境）
-        client_ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-        # 若获取不到则使用客户端主机
-        if not client_ip:
-            client_ip = request.client.host
-        
-        print(f"获取到的用户IP: {client_ip}")  # 调试用
-        
-        # 2. 向天气API发送请求，尝试传递IP参数（需API支持）
-        # 注意：根据API文档调整参数名，可能是ip、user_ip等
-        params = {"ip": client_ip}  # 假设API接受ip参数
-        
+        # 1. 向天气API发送请求，传递固定IP参数
+        params = {"ip": FIXED_IP}  # 传递固定IP
         weather_response = requests.get(
             WEATHER_API_URL,
-            params=params,  # 传递IP参数
+            params=params,
             timeout=10
         )
         weather_response.raise_for_status()
         
-        # 3. 处理API响应
+        # 2. 处理API响应
         raw_response_text = weather_response.text
         print(f"天气API响应: {raw_response_text}")
         
@@ -51,15 +41,15 @@ async def get_weather_svg(request: Request):
                 detail=f"API返回非JSON格式: {str(e)}\n内容: {raw_response_text[:200]}"
             )
         
-        # 4. 检查API返回状态码（处理业务错误）
+        # 3. 检查API返回状态码
         api_code = weather_data.get("code")
-        if api_code != "10000":  # 假设10000是成功码
+        if api_code != "10000":
             raise HTTPException(
                 status_code=500,
                 detail=f"天气API返回错误: {weather_data.get('message')}（code: {api_code}）"
             )
         
-        # 5. 验证data字段
+        # 4. 验证data字段
         data_list = weather_data.get("data")
         if not isinstance(data_list, list) or len(data_list) == 0:
             raise HTTPException(
@@ -67,7 +57,7 @@ async def get_weather_svg(request: Request):
                 detail=f"data不是有效数组（类型: {type(data_list).__name__}）\n响应: {raw_response_text[:200]}"
             )
         
-        # 6. 提取weatherIndex（后续逻辑不变）
+        # 5. 提取weatherIndex
         first_data = data_list[0]
         current_data = first_data.get("current", {})
         weather_index = current_data.get("weatherIndex")
@@ -75,7 +65,7 @@ async def get_weather_svg(request: Request):
         if not weather_index:
             raise HTTPException(status_code=404, detail="未找到weatherIndex参数")
         
-        # 7. 返回SVG图标
+        # 6. 返回SVG图标
         svg_filename = f"{weather_index}.svg"
         svg_full_path = os.path.join(SVG_STORAGE_DIR, svg_filename)
         
