@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "main.py",  # 你的 FastAPI 入口文件
+      "use": "@vercel/python",  # Vercel Python 构建器
+      "config": {
+        "requirements": "requirements.txt"  # 依赖文件路径
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",  # 匹配所有请求（包括根路径 / 和 /docs）
+      "dest": "main.py"  # 将所有请求转发到 main.py 中的 FastAPI 应用
+    }
+  ]
+}
